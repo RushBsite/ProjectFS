@@ -5,8 +5,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <assert.h>
-#include <io.h>
-//#include <unistd.h>
+#include <unistd.h>
 #include "disk.h"
 
 int fd; 

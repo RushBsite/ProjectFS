@@ -60,12 +60,22 @@ int GetIndirectBlockEntry(int blkno, int index)
 
 }
 
+void RemoveIndirectBlockEntry(int blkno, int index)
+{
+    
+}
+
 void PutDirEntry(int blkno, int index, DirEntry* pEntry)
 {
 
 }
 
-void GetDirEntry(int blkno, int index, DirEntry* pEntry)
+int GetDirEntry(int blkno, int index, DirEntry* pEntry)
+{
+
+}
+
+void RemoveDirEntry(int blkno, int index)
 {
 
 }

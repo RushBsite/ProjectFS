@@ -8,7 +8,7 @@
 #define FS_DISK_CAPACITY		(BLOCK_SIZE*512) 	
 
 
-#define NUM_OF_DIRECT_BLOCK_PTR	(5)	/* direct block pointer의 개수 */
+#define NUM_OF_DIRECT_BLOCK_PTR	(4)	/* direct block pointer의 개수 */
 #define MAX_NAME_LEN     	(28)
 
 
@@ -18,7 +18,7 @@
 #define INODELIST_BLOCK_FIRST   (3) /* the first block no. of inode list */
 #define INODELIST_BLOCKS        (4) /* the number of blocks in inode list */
 
-
+#define INVALID_ENTRY		(-1) 
 // ----------------------------------------------------------
 
 
@@ -37,7 +37,7 @@ typedef struct _Inode {
 	int		indirectBlockPtr;				// indirect block pointer
 } Inode;
 
-
+void FileSysInit(void);
 void SetInodeBytemap(int inodeno);
 void ResetInodeBytemap(int inodeno);
 void SetBlockBytemap(int blkno);
@@ -48,8 +48,9 @@ int GetFreeInodeNum(void);
 int GetFreeBlockNum(void);
 void PutIndirectBlockEntry(int blkno, int index, int number);
 int GetIndirectBlockEntry(int blkno, int index);
+void RemoveIndirectBlockEntry(int blkno, int index);
 void PutDirEntry(int blkno, int index, DirEntry* pEntry);
-void GetDirEntry(int blkno, int index, DirEntry* pEntry);
-
+int GetDirEntry(int blkno, int index, DirEntry* pEntry);
+void RemoveDirEntry(int blkno, int index);
 
 #endif /* FILESYSTEM_H_ */

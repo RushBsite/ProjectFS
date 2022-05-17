@@ -14,11 +14,16 @@ void FileSysInit(void)
 
     for(int i=0;i<=6;i++)
         DevWriteBlock(i,pBuf);
+    
+    DevCloseDisk();
     return;
 }
 
 void SetInodeBytemap(int inodeno)
 {
+    //Open disk
+    DevOpenDisk();
+
     //Read InodeBlock
     char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
     DevReadBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
@@ -26,12 +31,18 @@ void SetInodeBytemap(int inodeno)
     //Set inodeno to '1'
     pBuf[inodeno] = '1';
     DevWriteBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
+
+    //close disk
+    DevCloseDisk();
     return;
 }
 
 
 void ResetInodeBytemap(int inodeno)
 {
+    //Open disk
+    DevOpenDisk();
+
     //Read InodeBlock
     char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
     DevReadBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
@@ -39,12 +50,18 @@ void ResetInodeBytemap(int inodeno)
     //Reset inodeno to '0'
     pBuf[inodeno] = '0';
     DevWriteBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
+
+    //Open disk
+    DevOpenDisk();
     return;
 }
 
 
 void SetBlockBytemap(int blkno)
 {
+    //Open disk
+    DevOpenDisk();
+
     //Read block bytemap
     char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
     DevReadBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
@@ -52,12 +69,18 @@ void SetBlockBytemap(int blkno)
     //Set blkno to '1'
     pBuf[blkno] = '1';
     DevWriteBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
+
+    //Open disk
+    DevOpenDisk();
     return;
 }
 
 
 void ResetBlockBytemap(int blkno)
 {
+    //Open disk
+    DevOpenDisk();
+
     //Read block bytemap
     char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
     DevReadBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
@@ -65,6 +88,9 @@ void ResetBlockBytemap(int blkno)
     //Reset blkno to '0'
     pBuf[blkno] = '0';
     DevWriteBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
+
+    //Open disk
+    DevOpenDisk();
     return;
 }
 
@@ -77,7 +103,7 @@ void PutInode(int inodeno, Inode* pInode)
 
 void GetInode(int inodeno, Inode* pInode)
 {
-
+    //
 }
 
 

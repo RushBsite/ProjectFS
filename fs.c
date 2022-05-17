@@ -1,7 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "disk.h"
 #include "fs.h"
+
+void FileSysInit(void)
+{
+    DevCreateDisk();
+    //char *pBuf = (char*) calloc(BLOCK_SIZE,sizeof(char)); //block size allocate, init all by '0'
+    //memory with 0 saved in block 0to6
+    char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
+    memset(pBuf, '0', BLOCK_SIZE*sizeof(char));
+
+    for(int i=0;i<=6;i++)
+        DevWriteBlock(i,pBuf);
+    return;
+}
 
 void SetInodeBytemap(int inodeno)
 {

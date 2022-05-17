@@ -4,5 +4,6 @@
 
 int main(){
 	printf("Hello OS World\n");
+	FileSysInit();
 	return 0;
 }

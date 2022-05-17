@@ -19,25 +19,53 @@ void FileSysInit(void)
 
 void SetInodeBytemap(int inodeno)
 {
+    //Read InodeBlock
+    char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
+    DevReadBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
 
+    //Set inodeno to '1'
+    pBuf[inodeno] = '1';
+    DevWriteBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
+    return;
 }
 
 
 void ResetInodeBytemap(int inodeno)
 {
-
+    //Read InodeBlock
+    char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
+    DevReadBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
+    
+    //Reset inodeno to '0'
+    pBuf[inodeno] = '0';
+    DevWriteBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
+    return;
 }
 
 
 void SetBlockBytemap(int blkno)
 {
+    //Read block bytemap
+    char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
+    DevReadBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
 
+    //Set blkno to '1'
+    pBuf[blkno] = '1';
+    DevWriteBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
+    return;
 }
 
 
 void ResetBlockBytemap(int blkno)
 {
+    //Read block bytemap
+    char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
+    DevReadBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
 
+    //Reset blkno to '0'
+    pBuf[blkno] = '0';
+    DevWriteBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
+    return;
 }
 
 

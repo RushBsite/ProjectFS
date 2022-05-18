@@ -4,10 +4,6 @@
 #include "disk.h"
 #include "fs.h"
 
-#define NUM_OF_INODE_IN_BLOCK   (16) /* BLOCK_SIZE/sizeof(Inode) */
-#define NUM_OF_ENTRY_IN_BLOCK   (128) /* BLOCK_SIZE/sizeof(int) */   
-#define NUM_OF_DIRENTRY_IN_BLOCK    (16) /* BLOCK_SIZE/sizeof(DirEntry) */ 
-
 void FileSysInit(void)
 {
     DevCreateDisk();
@@ -107,6 +103,7 @@ void ResetBlockBytemap(int blkno)
 void PutInode(int inodeno, Inode* pInode)
 {
     //block number where inode stored
+    int NUM_OF_INODE_IN_BLOCK = BLOCK_SIZE/sizeof(Inode);
     int block_num = inodeno/NUM_OF_INODE_IN_BLOCK + INODELIST_BLOCK_FIRST; //physical block number
     int inodeIdx = inodeno%NUM_OF_INODE_IN_BLOCK; //physical inode block index
 
@@ -133,6 +130,7 @@ void PutInode(int inodeno, Inode* pInode)
 void GetInode(int inodeno, Inode* pInode)
 {
     //block number where inode stored
+    int NUM_OF_INODE_IN_BLOCK = BLOCK_SIZE/sizeof(Inode);
     int block_num = inodeno/NUM_OF_INODE_IN_BLOCK + INODELIST_BLOCK_FIRST; //physical block number
     int inodeIdx = inodeno%NUM_OF_INODE_IN_BLOCK; //physical inode block index
 
@@ -200,6 +198,8 @@ int GetFreeBlockNum(void)
 
 void PutIndirectBlockEntry(int blkno, int index, int number)
 {
+    int NUM_OF_ENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(int);
+
     //Open disk
     DevOpenDisk();
 
@@ -225,6 +225,8 @@ void PutIndirectBlockEntry(int blkno, int index, int number)
 
 int GetIndirectBlockEntry(int blkno, int index)
 {
+    int NUM_OF_ENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(int);
+
     //Open disk
     DevOpenDisk();
 
@@ -247,6 +249,8 @@ int GetIndirectBlockEntry(int blkno, int index)
 
 void RemoveIndirectBlockEntry(int blkno, int index)
 {
+    int NUM_OF_ENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(int);
+
     //Open disk
     DevOpenDisk();
 
@@ -272,6 +276,8 @@ void RemoveIndirectBlockEntry(int blkno, int index)
 
 void PutDirEntry(int blkno, int index, DirEntry* pEntry)
 {
+    int NUM_OF_DIRENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(DirEntry);
+
     //Open disk
     DevOpenDisk();
 
@@ -295,6 +301,8 @@ void PutDirEntry(int blkno, int index, DirEntry* pEntry)
 
 int GetDirEntry(int blkno, int index, DirEntry* pEntry)
 {
+    int NUM_OF_DIRENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(DirEntry);
+
     //Open disk
     DevOpenDisk();
 
@@ -320,6 +328,8 @@ int GetDirEntry(int blkno, int index, DirEntry* pEntry)
 
 void RemoveDirEntry(int blkno, int index)
 {
+    int NUM_OF_DIRENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(DirEntry);
+    
     //Open disk
     DevOpenDisk();
 

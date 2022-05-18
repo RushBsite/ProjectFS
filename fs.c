@@ -4,8 +4,12 @@
 #include "disk.h"
 #include "fs.h"
 
-#define NUM_OF_INODE_IN_BLOCK   (16)
-#define NUM_OF_BLOCK_IN_INODE   (32)
+#define NUM_OF_INODE_IN_BLOCK   (16) /* BLOCK_SIZE/sizeof(Inode) */
+#define NUM_OF_BLOCK_IN_INODE   (32) /*sizeof(Inode)*/
+#define NUM_OF_ENTRY_IN_BLOCK   (128) /* BLOCK_SIZE/sizeof(int) */   
+#define NUM_OF_BLOCK_IN_ENTRY   (4) /*sizeof(int)*/
+#define NUM_OF_DIRENTRY_IN_BLOCK    (16) /* BLOCK_SIZE/sizeof(DirEntry) */ 
+#define NUM_OF_BLOCK_IN_DIRENTRY    (32) /*sizeof(DirEntry)*/
 
 void FileSysInit(void)
 {
@@ -118,7 +122,7 @@ void PutInode(int inodeno, Inode* pInode)
     DevReadBlock(block_num, pBuf);
 
     //copy & write
-    memcpy(&pBuf[NUM_OF_BLOCK_IN_INODE*inodeIdx],pInode,sizeof(Inode));
+    memcpy(&ptr[inodeIdx],pInode,sizeof(Inode));
     DevWriteBlock(block_num,pBuf);
 
     //Close disk
@@ -138,15 +142,13 @@ void GetInode(int inodeno, Inode* pInode)
     //Open disk
     DevOpenDisk();
 
-    //Read Block number block
-    char *pBuf = (char*)malloc(BLOCK_SIZE*sizeof(char));
-    DevReadBlock(block_num, pBuf);
+    //type conversion & Read Block number block
+    Inode* ptr = (Inode*)malloc(sizeof(Inode)*NUM_OF_INODE_IN_BLOCK);
+    char* pBuf = (char*)ptr;
+    DevReadBlock(block_num, pBuf); 
     
-    //type conversion
-    Inode* ptr = (Inode*)&pBuf[NUM_OF_BLOCK_IN_INODE*inodeIdx];
-
     //save
-    memcpy(pInode, ptr,sizeof(Inode));
+    memcpy(pInode, &ptr[inodeIdx],sizeof(Inode));
 
     //Close disk
     DevCloseDisk();
@@ -201,30 +203,142 @@ int GetFreeBlockNum(void)
 
 void PutIndirectBlockEntry(int blkno, int index, int number)
 {
+    //Open disk
+    DevOpenDisk();
+
+    //type conversion
+    int *ptr = (int*)malloc(NUM_OF_ENTRY_IN_BLOCK*sizeof(int));
+    char *pBuf = (char*)ptr;
+
+    //Read Block number block
+    DevReadBlock(blkno, pBuf);
+
+    //copy & write
+    memcpy(&pBuf[NUM_OF_BLOCK_IN_ENTRY*index],&number,sizeof(int));
+    DevWriteBlock(blkno,pBuf);
+
+    //Close disk
+    DevCloseDisk();
+    free(pBuf);
+    free(ptr);
+    return;  
+
 
 }
 
 int GetIndirectBlockEntry(int blkno, int index)
 {
+    //Open disk
+    DevOpenDisk();
 
+    //Read Block number block
+    char *pBuf = (char*)malloc(BLOCK_SIZE*sizeof(char));
+    DevReadBlock(blkno, pBuf);
+    
+    //type conversion
+    int* ptr = (int*)&pBuf[NUM_OF_BLOCK_IN_ENTRY*index];
+
+
+    //Close disk
+    DevCloseDisk();
+    free(pBuf);
+    return *ptr;  
 }
 
 void RemoveIndirectBlockEntry(int blkno, int index)
 {
-    
+    //Open disk
+    DevOpenDisk();
+
+    //type conversion
+    int *ptr = (int*)malloc(NUM_OF_ENTRY_IN_BLOCK*sizeof(int));
+    char *pBuf = (char*)ptr;
+
+    //Read Block number block
+    DevReadBlock(blkno, pBuf);
+
+    //set Invaild
+    ptr[index] = INVALID_ENTRY;
+
+    //write    
+    DevWriteBlock(blkno,pBuf);
+
+    //Close disk
+    DevCloseDisk();
+    free(pBuf);
+    free(ptr);
+    return; 
 }
 
 void PutDirEntry(int blkno, int index, DirEntry* pEntry)
 {
+    //Open disk
+    DevOpenDisk();
 
+    //type conversion
+    DirEntry *ptr = (DirEntry*)malloc(NUM_OF_DIRENTRY_IN_BLOCK*sizeof(DirEntry));
+    char *pBuf = (char*)ptr;
+
+    //Read Block number block
+    DevReadBlock(blkno, pBuf);
+
+    //copy & write
+    memcpy(&pBuf[NUM_OF_BLOCK_IN_DIRENTRY*index],pEntry,sizeof(DirEntry));
+    DevWriteBlock(blkno,pBuf);
+
+    //Close disk
+    DevCloseDisk();
+    free(pBuf);
+    free(ptr);
+    return;
 }
 
 int GetDirEntry(int blkno, int index, DirEntry* pEntry)
 {
+    //Open disk
+    DevOpenDisk();
 
+    //Read Block number block
+    char *pBuf = (char*)malloc(BLOCK_SIZE*sizeof(char));
+    DevReadBlock(blkno, pBuf);
+    
+    //type conversion
+    DirEntry* ptr = (DirEntry*)&pBuf[NUM_OF_BLOCK_IN_DIRENTRY*index];
+
+    //save
+    memcpy(pEntry, ptr,sizeof(DirEntry));
+    
+    //Close disk
+    DevCloseDisk();
+    free(pBuf);
+    free(ptr);
+
+    //Invalid check
+    if(pEntry->inodeNum) return 1;
+    else return -1;  
 }
 
 void RemoveDirEntry(int blkno, int index)
 {
+    //Open disk
+    DevOpenDisk();
 
+    //type conversion
+    DirEntry *ptr = (DirEntry*)malloc(NUM_OF_DIRENTRY_IN_BLOCK*sizeof(DirEntry));
+    char *pBuf = (char*)ptr;
+
+    //Read Block number block
+    DevReadBlock(blkno, pBuf);
+
+    //set Invaild val
+    ptr[index].inodeNum = INVALID_ENTRY;
+
+    //write
+    DevWriteBlock(blkno,pBuf);
+
+    //Close disk
+    DevCloseDisk();
+    free(pBuf);
+    free(ptr);
+    return;
 }

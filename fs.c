@@ -5,11 +5,8 @@
 #include "fs.h"
 
 #define NUM_OF_INODE_IN_BLOCK   (16) /* BLOCK_SIZE/sizeof(Inode) */
-#define NUM_OF_BLOCK_IN_INODE   (32) /*sizeof(Inode)*/
 #define NUM_OF_ENTRY_IN_BLOCK   (128) /* BLOCK_SIZE/sizeof(int) */   
-#define NUM_OF_BLOCK_IN_ENTRY   (4) /*sizeof(int)*/
 #define NUM_OF_DIRENTRY_IN_BLOCK    (16) /* BLOCK_SIZE/sizeof(DirEntry) */ 
-#define NUM_OF_BLOCK_IN_DIRENTRY    (32) /*sizeof(DirEntry)*/
 
 void FileSysInit(void)
 {
@@ -214,7 +211,7 @@ void PutIndirectBlockEntry(int blkno, int index, int number)
     DevReadBlock(blkno, pBuf);
 
     //copy & write
-    memcpy(&pBuf[NUM_OF_BLOCK_IN_ENTRY*index],&number,sizeof(int));
+    memcpy(&ptr[index],&number,sizeof(int));
     DevWriteBlock(blkno,pBuf);
 
     //Close disk
@@ -231,18 +228,21 @@ int GetIndirectBlockEntry(int blkno, int index)
     //Open disk
     DevOpenDisk();
 
-    //Read Block number block
-    char *pBuf = (char*)malloc(BLOCK_SIZE*sizeof(char));
-    DevReadBlock(blkno, pBuf);
-    
     //type conversion
-    int* ptr = (int*)&pBuf[NUM_OF_BLOCK_IN_ENTRY*index];
+    int *ptr = (int*)malloc(NUM_OF_ENTRY_IN_BLOCK*sizeof(int));
+    char *pBuf = (char*)ptr;
 
+    //Read Block number block
+    DevReadBlock(blkno, pBuf);
+
+    //copy
+    int temp = ptr[index];
 
     //Close disk
     DevCloseDisk();
+    free(ptr);
     free(pBuf);
-    return *ptr;  
+    return temp;  
 }
 
 void RemoveIndirectBlockEntry(int blkno, int index)
@@ -283,7 +283,7 @@ void PutDirEntry(int blkno, int index, DirEntry* pEntry)
     DevReadBlock(blkno, pBuf);
 
     //copy & write
-    memcpy(&pBuf[NUM_OF_BLOCK_IN_DIRENTRY*index],pEntry,sizeof(DirEntry));
+    memcpy(&ptr[index],pEntry,sizeof(DirEntry));
     DevWriteBlock(blkno,pBuf);
 
     //Close disk
@@ -298,15 +298,15 @@ int GetDirEntry(int blkno, int index, DirEntry* pEntry)
     //Open disk
     DevOpenDisk();
 
+    //type conversion
+    DirEntry *ptr = (DirEntry*)malloc(NUM_OF_DIRENTRY_IN_BLOCK*sizeof(DirEntry));
+    char *pBuf = (char*)ptr;
+
     //Read Block number block
-    char *pBuf = (char*)malloc(BLOCK_SIZE*sizeof(char));
     DevReadBlock(blkno, pBuf);
     
-    //type conversion
-    DirEntry* ptr = (DirEntry*)&pBuf[NUM_OF_BLOCK_IN_DIRENTRY*index];
-
     //save
-    memcpy(pEntry, ptr,sizeof(DirEntry));
+    memcpy(pEntry, &ptr[index], sizeof(DirEntry));
     
     //Close disk
     DevCloseDisk();

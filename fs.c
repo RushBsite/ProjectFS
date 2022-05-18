@@ -5,7 +5,7 @@
 #include "fs.h"
 
 #define NUM_OF_INODE_IN_BLOCK   (16)
-#define NUM_OF_BLOCK_IN_INODELIST   (32)
+#define NUM_OF_BLOCK_IN_INODE   (32)
 
 void FileSysInit(void)
 {
@@ -118,7 +118,7 @@ void PutInode(int inodeno, Inode* pInode)
     DevReadBlock(block_num, pBuf);
 
     //copy & write
-    memcpy(&pBuf[NUM_OF_BLOCK_IN_INODELIST*inodeIdx],pInode,sizeof(Inode));
+    memcpy(&pBuf[NUM_OF_BLOCK_IN_INODE*inodeIdx],pInode,sizeof(Inode));
     DevWriteBlock(block_num,pBuf);
 
     //Close disk
@@ -143,7 +143,7 @@ void GetInode(int inodeno, Inode* pInode)
     DevReadBlock(block_num, pBuf);
     
     //type conversion
-    Inode* ptr = (Inode*)&pBuf[NUM_OF_BLOCK_IN_INODELIST*inodeIdx];
+    Inode* ptr = (Inode*)&pBuf[NUM_OF_BLOCK_IN_INODE*inodeIdx];
 
     //save
     memcpy(pInode, ptr,sizeof(Inode));
@@ -158,13 +158,45 @@ void GetInode(int inodeno, Inode* pInode)
 
 int GetFreeInodeNum(void)
 {
-    
+    //Open disk
+    DevOpenDisk();
+
+    //Read Block number block
+    char *pBuf = (char*)malloc(BLOCK_SIZE*sizeof(char));
+    DevReadBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
+
+    //Close disk
+    DevCloseDisk();
+
+    //First fit search 
+    for(int i=0;i<BLOCK_SIZE;i++){
+        if(!pBuf[i]) {free(pBuf); return i;}
+    }
+
+    free(pBuf);    
+    return -1;
 }
 
 
 int GetFreeBlockNum(void)
 {
+    //Open disk
+    DevOpenDisk();
 
+    //Read Block number block
+    char *pBuf = (char*)malloc(BLOCK_SIZE*sizeof(char));
+    DevReadBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
+
+    //Close disk
+    DevCloseDisk();
+
+    //First fit search 
+    for(int i=0;i<BLOCK_SIZE;i++){
+        if(!pBuf[i]) {free(pBuf); return i;}
+    }
+
+    free(pBuf);    
+    return -1;
 }
 
 void PutIndirectBlockEntry(int blkno, int index, int number)

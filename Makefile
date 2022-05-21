@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -c -g
-LDFLAGS = -fPIE
+LDFLAGS = -no-pie
 OBJECTS = validate.o testcase.o fs.o disk.o
 
 run: all

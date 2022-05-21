@@ -213,7 +213,7 @@ void PutIndirectBlockEntry(int blkno, int index, int number)
     DevWriteBlock(blkno,pBuf);
 
     //Close disk
-    DevCloseDisk();
+    //DevCloseDisk();
     free(pBuf);
     return;  
 
@@ -238,9 +238,9 @@ int GetIndirectBlockEntry(int blkno, int index)
     int temp = ptr[index];
 
     //Close disk
-    DevCloseDisk();
+    //DevCloseDisk();
     free(ptr);
-    printf("entry no: %d, value: %d\n", index, temp);
+    //printf("entry no: %d, value: %d\n", index, temp);
     return temp;  
 }
 
@@ -265,7 +265,7 @@ void RemoveIndirectBlockEntry(int blkno, int index)
     DevWriteBlock(blkno,pBuf);
 
     //Close disk
-    DevCloseDisk();
+    //DevCloseDisk();
     free(pBuf);
     return; 
 }
@@ -285,11 +285,11 @@ void PutDirEntry(int blkno, int index, DirEntry* pEntry)
     DevReadBlock(blkno, pBuf);
 
     //copy & write
-    memcpy(&ptr[index],pEntry,sizeof(DirEntry));
+    memcpy(pBuf+(index*32),pEntry,sizeof(DirEntry));
     DevWriteBlock(blkno,pBuf);
 
     //Close disk
-    DevCloseDisk();
+    //DevCloseDisk();
     free(ptr);
     return;
 }
@@ -312,7 +312,7 @@ int GetDirEntry(int blkno, int index, DirEntry* pEntry)
     memcpy(pEntry, &ptr[index], sizeof(DirEntry));
     
     //Close disk
-    DevCloseDisk();
+    //DevCloseDisk();
     free(pBuf);
 
     //Invalid check
@@ -341,7 +341,7 @@ void RemoveDirEntry(int blkno, int index)
     DevWriteBlock(blkno,pBuf);
 
     //Close disk
-    DevCloseDisk();
+    //DevCloseDisk();
     free(pBuf);
     return;
 }

@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -c -g
-LDFLAGS =  
-OBJECTS = main.o fs.o disk.o
+LDFLAGS = -fPIE
+OBJECTS = validate.o testcase.o fs.o disk.o
 
 run: all
 	./program
@@ -9,10 +9,10 @@ run: all
 all: program
 
 program : $(OBJECTS)
-	$(CC)  $(LDFLAGS) -o program $(OBJECTS)
+	$(CC) $(LDFLAGS) -o program $(OBJECTS)
 
-main.o : main.c
-	$(CC) $(CFLAGS) main.c 
+testcase.o : testcase.c
+	$(CC) $(CFLAGS) testcase.c 
 
 fs.o : fs.c
 	$(CC) $(CFLAGS) fs.c

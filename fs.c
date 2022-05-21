@@ -122,7 +122,6 @@ void PutInode(int inodeno, Inode* pInode)
     //Close disk
     DevCloseDisk();
     free(pBuf);
-    free(ptr);
     return; 
 }
 
@@ -148,7 +147,6 @@ void GetInode(int inodeno, Inode* pInode)
     //Close disk
     DevCloseDisk();
     free(pBuf);
-    free(ptr);
     return;       
 }
 
@@ -217,7 +215,6 @@ void PutIndirectBlockEntry(int blkno, int index, int number)
     //Close disk
     DevCloseDisk();
     free(pBuf);
-    free(ptr);
     return;  
 
 
@@ -243,7 +240,7 @@ int GetIndirectBlockEntry(int blkno, int index)
     //Close disk
     DevCloseDisk();
     free(ptr);
-    free(pBuf);
+    printf("entry no: %d, value: %d\n", index, temp);
     return temp;  
 }
 
@@ -270,7 +267,6 @@ void RemoveIndirectBlockEntry(int blkno, int index)
     //Close disk
     DevCloseDisk();
     free(pBuf);
-    free(ptr);
     return; 
 }
 
@@ -294,7 +290,6 @@ void PutDirEntry(int blkno, int index, DirEntry* pEntry)
 
     //Close disk
     DevCloseDisk();
-    free(pBuf);
     free(ptr);
     return;
 }
@@ -319,11 +314,10 @@ int GetDirEntry(int blkno, int index, DirEntry* pEntry)
     //Close disk
     DevCloseDisk();
     free(pBuf);
-    free(ptr);
 
     //Invalid check
-    if(pEntry->inodeNum) return 1;
-    else return -1;  
+    if(pEntry->inodeNum == INVALID_ENTRY) return INVALID_ENTRY;
+    else return 1;  
 }
 
 void RemoveDirEntry(int blkno, int index)
@@ -349,6 +343,5 @@ void RemoveDirEntry(int blkno, int index)
     //Close disk
     DevCloseDisk();
     free(pBuf);
-    free(ptr);
     return;
 }

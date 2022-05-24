@@ -15,7 +15,6 @@ void FileSysInit(void)
     for(int i=0;i<=6;i++)
         DevWriteBlock(i,pBuf);
     
-    DevCloseDisk();
     free(pBuf);
     return;
 }
@@ -33,8 +32,6 @@ void SetInodeBytemap(int inodeno)
     pBuf[inodeno] = 1;
     DevWriteBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
 
-    //close disk
-    DevCloseDisk();
     free(pBuf);
     return;
 }
@@ -53,8 +50,6 @@ void ResetInodeBytemap(int inodeno)
     pBuf[inodeno] = 0;
     DevWriteBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
 
-    //Close disk
-    DevCloseDisk();
     free(pBuf);
     return;
 }
@@ -73,8 +68,6 @@ void SetBlockBytemap(int blkno)
     pBuf[blkno] = (char)1;
     DevWriteBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
 
-    //Close disk
-    DevCloseDisk();
     free(pBuf);
     return;
 }
@@ -93,8 +86,6 @@ void ResetBlockBytemap(int blkno)
     pBuf[blkno] = 0;
     DevWriteBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
 
-    //Close disk
-    DevCloseDisk();
     free(pBuf);
     return;
 }
@@ -119,8 +110,6 @@ void PutInode(int inodeno, Inode* pInode)
     memcpy(&ptr[inodeIdx],pInode,sizeof(Inode));
     DevWriteBlock(block_num,pBuf);
 
-    //Close disk
-    DevCloseDisk();
     free(pBuf);
     return; 
 }
@@ -144,8 +133,6 @@ void GetInode(int inodeno, Inode* pInode)
     //save
     memcpy(pInode, &ptr[inodeIdx],sizeof(Inode));
 
-    //Close disk
-    DevCloseDisk();
     free(pBuf);
     return;       
 }
@@ -212,8 +199,6 @@ void PutIndirectBlockEntry(int blkno, int index, int number)
     memcpy(&ptr[index],&number,sizeof(int));
     DevWriteBlock(blkno,pBuf);
 
-    //Close disk
-    //DevCloseDisk();
     free(pBuf);
     return;  
 
@@ -237,8 +222,6 @@ int GetIndirectBlockEntry(int blkno, int index)
     //copy
     int temp = ptr[index];
 
-    //Close disk
-    //DevCloseDisk();
     free(ptr);
     //printf("entry no: %d, value: %d\n", index, temp);
     return temp;  
@@ -264,8 +247,6 @@ void RemoveIndirectBlockEntry(int blkno, int index)
     //write    
     DevWriteBlock(blkno,pBuf);
 
-    //Close disk
-    //DevCloseDisk();
     free(pBuf);
     return; 
 }
@@ -285,11 +266,9 @@ void PutDirEntry(int blkno, int index, DirEntry* pEntry)
     DevReadBlock(blkno, pBuf);
 
     //copy & write
-    memcpy(pBuf+(index*32),pEntry,sizeof(DirEntry));
+    memcpy(&ptr[index],pEntry,sizeof(DirEntry));
     DevWriteBlock(blkno,pBuf);
 
-    //Close disk
-    //DevCloseDisk();
     free(ptr);
     return;
 }
@@ -311,8 +290,6 @@ int GetDirEntry(int blkno, int index, DirEntry* pEntry)
     //save
     memcpy(pEntry, &ptr[index], sizeof(DirEntry));
     
-    //Close disk
-    //DevCloseDisk();
     free(pBuf);
 
     //Invalid check

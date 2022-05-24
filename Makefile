@@ -6,9 +6,9 @@ OBJECTS = validate.o testcase.o fs.o disk.o
 run: all
 	./hw1
 
-all: hw1
+all : hw1
 
-program : $(OBJECTS)
+hw1 : $(OBJECTS)
 	$(CC) $(LDFLAGS) -o hw1 $(OBJECTS)
 
 testcase.o : testcase.c

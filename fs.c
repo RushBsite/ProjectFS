@@ -12,6 +12,8 @@ void FileSysInit(void)
     char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
     memset(pBuf, 0, BLOCK_SIZE*sizeof(char));
 
+    DevOpenDisk();
+
     for(int i=0;i<=6;i++)
         DevWriteBlock(i,pBuf);
     
@@ -186,7 +188,7 @@ void PutIndirectBlockEntry(int blkno, int index, int number)
     int NUM_OF_ENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(int);
 
     //Open disk
-    DevOpenDisk();
+    //DevOpenDisk();
 
     //type conversion
     int *ptr = (int*)malloc(NUM_OF_ENTRY_IN_BLOCK*sizeof(int));
@@ -210,7 +212,7 @@ int GetIndirectBlockEntry(int blkno, int index)
     int NUM_OF_ENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(int);
 
     //Open disk
-    DevOpenDisk();
+    //DevOpenDisk();
 
     //type conversion
     int *ptr = (int*)malloc(NUM_OF_ENTRY_IN_BLOCK*sizeof(int));
@@ -230,9 +232,8 @@ int GetIndirectBlockEntry(int blkno, int index)
 void RemoveIndirectBlockEntry(int blkno, int index)
 {
     int NUM_OF_ENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(int);
-
-    //Open disk
-    DevOpenDisk();
+    //Open?
+    //DevOpenDisk();
 
     //type conversion
     int *ptr = (int*)malloc(NUM_OF_ENTRY_IN_BLOCK*sizeof(int));
@@ -247,6 +248,9 @@ void RemoveIndirectBlockEntry(int blkno, int index)
     //write    
     DevWriteBlock(blkno,pBuf);
 
+    //
+    //DevCloseDisk();
+
     free(pBuf);
     return; 
 }
@@ -256,7 +260,7 @@ void PutDirEntry(int blkno, int index, DirEntry* pEntry)
     int NUM_OF_DIRENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(DirEntry);
 
     //Open disk
-    DevOpenDisk();
+    //DevOpenDisk();
 
     //type conversion
     DirEntry *ptr = (DirEntry*)malloc(NUM_OF_DIRENTRY_IN_BLOCK*sizeof(DirEntry));
@@ -278,7 +282,7 @@ int GetDirEntry(int blkno, int index, DirEntry* pEntry)
     int NUM_OF_DIRENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(DirEntry);
 
     //Open disk
-    DevOpenDisk();
+    //DevOpenDisk();
 
     //type conversion
     DirEntry *ptr = (DirEntry*)malloc(NUM_OF_DIRENTRY_IN_BLOCK*sizeof(DirEntry));
@@ -302,7 +306,7 @@ void RemoveDirEntry(int blkno, int index)
     int NUM_OF_DIRENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(DirEntry);
     
     //Open disk
-    DevOpenDisk();
+    //DevOpenDisk();
 
     //type conversion
     DirEntry *ptr = (DirEntry*)malloc(NUM_OF_DIRENTRY_IN_BLOCK*sizeof(DirEntry));

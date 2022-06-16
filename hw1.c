@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "disk.h"
-#include "fs.h"
+#include "hw1.h"
 
 void FileSysInit(void)
 {
@@ -23,9 +23,6 @@ void FileSysInit(void)
 
 void SetInodeBytemap(int inodeno)
 {
-    //Open disk
-    DevOpenDisk();
-
     //Read InodeBlock
     char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
     DevReadBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
@@ -41,9 +38,6 @@ void SetInodeBytemap(int inodeno)
 
 void ResetInodeBytemap(int inodeno)
 {
-    //Open disk
-    DevOpenDisk();
-
     //Read InodeBlock
     char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
     DevReadBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
@@ -59,9 +53,6 @@ void ResetInodeBytemap(int inodeno)
 
 void SetBlockBytemap(int blkno)
 {
-    //Open disk
-    DevOpenDisk();
-
     //Read block bytemap
     char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
     DevReadBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
@@ -77,9 +68,6 @@ void SetBlockBytemap(int blkno)
 
 void ResetBlockBytemap(int blkno)
 {
-    //Open disk
-    DevOpenDisk();
-
     //Read block bytemap
     char *pBuf = (char*) malloc(BLOCK_SIZE*(sizeof(char)));
     DevReadBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
@@ -99,9 +87,6 @@ void PutInode(int inodeno, Inode* pInode)
     int NUM_OF_INODE_IN_BLOCK = BLOCK_SIZE/sizeof(Inode);
     int block_num = inodeno/NUM_OF_INODE_IN_BLOCK + INODELIST_BLOCK_FIRST; //physical block number
     int inodeIdx = inodeno%NUM_OF_INODE_IN_BLOCK; //physical inode block index
-
-    //Open disk
-    DevOpenDisk();
 
     //type conversion & Read Block number block
     Inode* ptr = (Inode*)malloc(sizeof(Inode)*NUM_OF_INODE_IN_BLOCK);
@@ -124,9 +109,6 @@ void GetInode(int inodeno, Inode* pInode)
     int block_num = inodeno/NUM_OF_INODE_IN_BLOCK + INODELIST_BLOCK_FIRST; //physical block number
     int inodeIdx = inodeno%NUM_OF_INODE_IN_BLOCK; //physical inode block index
 
-    //Open disk
-    DevOpenDisk();
-
     //type conversion & Read Block number block
     Inode* ptr = (Inode*)malloc(sizeof(Inode)*NUM_OF_INODE_IN_BLOCK);
     char* pBuf = (char*)ptr;
@@ -142,15 +124,9 @@ void GetInode(int inodeno, Inode* pInode)
 
 int GetFreeInodeNum(void)
 {
-    //Open disk
-    DevOpenDisk();
-
     //Read Block number block
     char *pBuf = (char*)malloc(BLOCK_SIZE*sizeof(char));
     DevReadBlock(INODE_BYTEMAP_BLOCK_NUM, pBuf);
-
-    //Close disk
-    DevCloseDisk();
 
     //First fit search 
     for(int i=0;i<BLOCK_SIZE;i++){
@@ -164,15 +140,10 @@ int GetFreeInodeNum(void)
 
 int GetFreeBlockNum(void)
 {
-    //Open disk
-    DevOpenDisk();
 
     //Read Block number block
     char *pBuf = (char*)malloc(BLOCK_SIZE*sizeof(char));
     DevReadBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
-
-    //Close disk
-    DevCloseDisk();
 
     //First fit search 
     for(int i=0;i<BLOCK_SIZE;i++){
@@ -186,9 +157,6 @@ int GetFreeBlockNum(void)
 void PutIndirectBlockEntry(int blkno, int index, int number)
 {
     int NUM_OF_ENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(int);
-
-    //Open disk
-    //DevOpenDisk();
 
     //type conversion
     int *ptr = (int*)malloc(NUM_OF_ENTRY_IN_BLOCK*sizeof(int));
@@ -211,9 +179,6 @@ int GetIndirectBlockEntry(int blkno, int index)
 {
     int NUM_OF_ENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(int);
 
-    //Open disk
-    //DevOpenDisk();
-
     //type conversion
     int *ptr = (int*)malloc(NUM_OF_ENTRY_IN_BLOCK*sizeof(int));
     char *pBuf = (char*)ptr;
@@ -232,8 +197,6 @@ int GetIndirectBlockEntry(int blkno, int index)
 void RemoveIndirectBlockEntry(int blkno, int index)
 {
     int NUM_OF_ENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(int);
-    //Open?
-    //DevOpenDisk();
 
     //type conversion
     int *ptr = (int*)malloc(NUM_OF_ENTRY_IN_BLOCK*sizeof(int));
@@ -248,9 +211,6 @@ void RemoveIndirectBlockEntry(int blkno, int index)
     //write    
     DevWriteBlock(blkno,pBuf);
 
-    //
-    //DevCloseDisk();
-
     free(pBuf);
     return; 
 }
@@ -258,9 +218,6 @@ void RemoveIndirectBlockEntry(int blkno, int index)
 void PutDirEntry(int blkno, int index, DirEntry* pEntry)
 {
     int NUM_OF_DIRENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(DirEntry);
-
-    //Open disk
-    //DevOpenDisk();
 
     //type conversion
     DirEntry *ptr = (DirEntry*)malloc(NUM_OF_DIRENTRY_IN_BLOCK*sizeof(DirEntry));
@@ -280,9 +237,6 @@ void PutDirEntry(int blkno, int index, DirEntry* pEntry)
 int GetDirEntry(int blkno, int index, DirEntry* pEntry)
 {
     int NUM_OF_DIRENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(DirEntry);
-
-    //Open disk
-    //DevOpenDisk();
 
     //type conversion
     DirEntry *ptr = (DirEntry*)malloc(NUM_OF_DIRENTRY_IN_BLOCK*sizeof(DirEntry));
@@ -304,9 +258,6 @@ int GetDirEntry(int blkno, int index, DirEntry* pEntry)
 void RemoveDirEntry(int blkno, int index)
 {
     int NUM_OF_DIRENTRY_IN_BLOCK = BLOCK_SIZE/sizeof(DirEntry);
-    
-    //Open disk
-    //DevOpenDisk();
 
     //type conversion
     DirEntry *ptr = (DirEntry*)malloc(NUM_OF_DIRENTRY_IN_BLOCK*sizeof(DirEntry));
@@ -321,8 +272,6 @@ void RemoveDirEntry(int blkno, int index)
     //write
     DevWriteBlock(blkno,pBuf);
 
-    //Close disk
-    //DevCloseDisk();
     free(pBuf);
     return;
 }

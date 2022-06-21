@@ -13,8 +13,9 @@ void FileSysInit(void)
     memset(pBuf, 0, BLOCK_SIZE*sizeof(char));
 
     DevOpenDisk();
+    int TOTAL_BLOCKS = FS_DISK_CAPACITY/BLOCK_SIZE;
 
-    for(int i=0;i<=6;i++)
+    for(int i=0;i<TOTAL_BLOCKS;i++)
         DevWriteBlock(i,pBuf);
     
     free(pBuf);
@@ -146,7 +147,7 @@ int GetFreeBlockNum(void)
     DevReadBlock(BLOCK_BYTEMAP_BLOCK_NUM, pBuf);
 
     //First fit search 
-    for(int i=0;i<BLOCK_SIZE;i++){
+    for(int i=INODELIST_BLOCK_FIRST+INODELIST_BLOCKS;i<BLOCK_SIZE;i++){
         if(!pBuf[i]) {free(pBuf); return i;}
     }
 

@@ -114,12 +114,17 @@ void CreateFileSystem(void)
 }
 void OpenFileSystem(void)
 {
-
+    DevOpenDisk();
+    pFileSysInfo = (FileSysInfo*)malloc(BLOCK_SIZE);
+    char* pBuf = (char*)pFileSysInfo;
+    memset(pFileSysInfo, 0, BLOCK_SIZE);
+    DevReadBlock(0, pBuf);
 }
 
 void CloseFileSystem(void)
 {
-
+    free(pFileSysInfo);
+    DevCloseDisk();
 }
 
 Directory* OpenDirectory(char* name)

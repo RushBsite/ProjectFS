@@ -4,7 +4,7 @@ LDFLAGS = -no-pie
 OBJECTS = validate.o testcase.o hw1.o hw2.o disk.o
 
 run: all
-	./program
+	./program createfs 1
 
 all : program
 

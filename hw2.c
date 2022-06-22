@@ -6,33 +6,33 @@
 #include "hw2.h"
 
 FileDescTable* pFileDescTable;
-FileSysInfo* pFileSysInfo;
+FileSysInfo* _pFileSysInfo;
 
 int OpenFile(const char* name, OpenFlag flag)
 {
-
+    return 0;
 }
 
 
 int WriteFile(int fileDesc, char* pBuffer, int length)
 {
-
+    return 0;
 }
 
 
 int ReadFile(int fileDesc, char* pBuffer, int length)
 {
-
+    return 0;
 }
 
 int CloseFile(int fileDesc)
 {
-
+    return 0;
 }
 
 int RemoveFile(char* name)
 {
-
+    return 0;
 }
 
 
@@ -49,9 +49,6 @@ int MakeDirectory(char* name)
         buf = strtok(NULL, "/");
     }
 
-    //Get Free No.
-    int targetBlockNum = GetFreeBlockNum();
-    int targetInodeNum = GetFreeInodeNum();
 
     //**---Set root Dir Block---**
 
@@ -99,9 +96,11 @@ int MakeDirectory(char* name)
                 SetBlockBytemap(newBlkNum);    
             
                 //update FileSystemInfo
-                pFileSysInfo->numFreeBlocks--;
-                pFileSysInfo->numAllocBlocks++;
-                DevWriteBlock(FILESYS_INFO_BLOCK, (char*)pFileSysInfo);
+                DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                _pFileSysInfo->numFreeBlocks--;
+                _pFileSysInfo->numAllocBlocks++;
+                DevWriteBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
 
                 free(n_pEntry);
             }
@@ -145,7 +144,12 @@ int MakeDirectory(char* name)
   
     //2. if Possible : Set DirEntry
 
+     //Get Free No.
+    int targetBlockNum = GetFreeBlockNum();
+    int targetInodeNum = GetFreeInodeNum();
+
     //set prev direntry
+    DevReadBlock(pInode->dirBlockPtr[targetdirBlkPtr],pBuf);
     strncpy(pEntry[targetDirEntryNum].name,paths[index-1],strlen(paths[index-1])+1);
     pEntry[targetDirEntryNum].inodeNum = targetInodeNum;
     DevWriteBlock(pInode->dirBlockPtr[targetdirBlkPtr],pBuf);
@@ -157,6 +161,11 @@ int MakeDirectory(char* name)
     pEntry[0].inodeNum = targetInodeNum;
     strncpy(pEntry[1].name,"..",3);
     pEntry[1].inodeNum = nextInodeNum;
+    
+    for(int i=2;i<NUM_OF_DIRENT_PER_BLK;i++){
+        memset(pEntry[i].name, 0, MAX_NAME_LEN);
+        pEntry[i].inodeNum = INVALID_ENTRY;
+    }
 
     DevWriteBlock(targetBlockNum,pBuf);
 
@@ -176,10 +185,12 @@ int MakeDirectory(char* name)
     SetInodeBytemap(targetInodeNum);
 
     //**---FileSysInfo handle---**
-    pFileSysInfo->numAllocBlocks++;
-    pFileSysInfo->numFreeBlocks--;
-    pFileSysInfo->numAllocInodes++;
-    DevWriteBlock(FILESYS_INFO_BLOCK,(char*)pFileSysInfo);
+    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+    _pFileSysInfo->numAllocBlocks++;
+    _pFileSysInfo->numFreeBlocks--;
+    _pFileSysInfo->numAllocInodes++;
+    DevWriteBlock(FILESYS_INFO_BLOCK,(char*)_pFileSysInfo);
+    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
     
     free(pEntry);
     free(pInode);
@@ -283,10 +294,12 @@ int RemoveDirectory(char* name)
 
 
     //Re set FileSysInfo
-    pFileSysInfo->numFreeBlocks++;
-    pFileSysInfo->numAllocInodes--;
-    pFileSysInfo->numAllocBlocks--;
-    DevWriteBlock(FILESYS_INFO_BLOCK,(char*)pFileSysInfo);
+    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+    _pFileSysInfo->numFreeBlocks++;
+    _pFileSysInfo->numAllocInodes--;
+    _pFileSysInfo->numAllocBlocks--;
+    DevWriteBlock(FILESYS_INFO_BLOCK,(char*)_pFileSysInfo);
+    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
 
 
     //Delete cur dir in prev dir
@@ -317,9 +330,11 @@ int RemoveDirectory(char* name)
                     PutInode(prevInodeNum,pInode);
 
                     //reset FileSysInfo
-                    pFileSysInfo->numFreeBlocks++;
-                    pFileSysInfo->numAllocBlocks--;
-                    DevWriteBlock(FILESYS_INFO_BLOCK, (char*)pFileSysInfo);
+                    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                    _pFileSysInfo->numFreeBlocks++;
+                    _pFileSysInfo->numAllocBlocks--;
+                    DevWriteBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
                     finish = 1;
                 }
                 break;
@@ -370,23 +385,24 @@ void CreateFileSystem(void)
     //**---Create FileSysInfo block---**
 
     //Init FileSysInfo, typecast
-    pFileSysInfo = (FileSysInfo*)malloc(BLOCK_SIZE);
-    memset(pFileSysInfo, 0, BLOCK_SIZE);
-    pBuf = (char*) pFileSysInfo;
+    _pFileSysInfo = (FileSysInfo*)malloc(BLOCK_SIZE);
+    memset(_pFileSysInfo, 0, BLOCK_SIZE);
+    pBuf = (char*) _pFileSysInfo;
     
     int numTotalBlocks = FS_DISK_CAPACITY/BLOCK_SIZE;
-    pFileSysInfo->blocks = numTotalBlocks;
-    pFileSysInfo->rootInodeNum = 0;
-    pFileSysInfo->diskCapacity = FS_DISK_CAPACITY;
-    pFileSysInfo->numAllocBlocks++;
-    pFileSysInfo->numFreeBlocks = numTotalBlocks - (INODELIST_BLOCK_FIRST+INODELIST_BLOCKS) -1;
-    pFileSysInfo->numAllocInodes++;
-    pFileSysInfo->blockBytemapBlock = BLOCK_BYTEMAP_BLOCK_NUM;
-    pFileSysInfo->inodeBytemapBlock = INODE_BYTEMAP_BLOCK_NUM;
-    pFileSysInfo->inodeListBlock = INODELIST_BLOCK_FIRST;
-    pFileSysInfo->dataRegionBlock = INODELIST_BLOCK_FIRST+INODELIST_BLOCKS;
+    _pFileSysInfo->blocks = numTotalBlocks;
+    _pFileSysInfo->rootInodeNum = 0;
+    _pFileSysInfo->diskCapacity = FS_DISK_CAPACITY;
+    _pFileSysInfo->numAllocBlocks = 1;
+    _pFileSysInfo->numFreeBlocks = numTotalBlocks - (INODELIST_BLOCK_FIRST+INODELIST_BLOCKS) -1;
+    _pFileSysInfo->numAllocInodes = 1;
+    _pFileSysInfo->blockBytemapBlock = BLOCK_BYTEMAP_BLOCK_NUM;
+    _pFileSysInfo->inodeBytemapBlock = INODE_BYTEMAP_BLOCK_NUM;
+    _pFileSysInfo->inodeListBlock = INODELIST_BLOCK_FIRST;
+    _pFileSysInfo->dataRegionBlock = INODELIST_BLOCK_FIRST+INODELIST_BLOCKS;
 
     DevWriteBlock(FILESYS_INFO_BLOCK,pBuf);
+    DevReadBlock(FILESYS_INFO_BLOCK, pBuf);
     
     //Set Block bytemap
     SetBlockBytemap(targetBlockNum);
@@ -415,30 +431,30 @@ void CreateFileSystem(void)
 void OpenFileSystem(void)
 {
     DevOpenDisk();
-    pFileSysInfo = (FileSysInfo*)malloc(BLOCK_SIZE);
-    char* pBuf = (char*)pFileSysInfo;
-    memset(pFileSysInfo, 0, BLOCK_SIZE);
+    _pFileSysInfo = (FileSysInfo*)malloc(BLOCK_SIZE);
+    char* pBuf = (char*)_pFileSysInfo;
+    memset(_pFileSysInfo, 0, BLOCK_SIZE);
     DevReadBlock(0, pBuf);
 }
 
 void CloseFileSystem(void)
 {
-    free(pFileSysInfo);
+    free(_pFileSysInfo);
     DevCloseDisk();
 }
 
 Directory* OpenDirectory(char* name)
 {
-
+    return NULL;
 }
 
 
 FileInfo* ReadDirectory(Directory* pDir)
 {
-
+    return NULL;
 }
 
 int CloseDirectory(Directory* pDir)
 {
-
+    return 0;
 }

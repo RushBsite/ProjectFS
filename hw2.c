@@ -11,6 +11,7 @@ int offset = 0;
 
 int OpenFile(const char* name, OpenFlag flag)
 {
+
     return 0;
 }
 
@@ -69,6 +70,7 @@ int MakeDirectory(char* name)
     int check = 0;
     int targetDirEntryNum = -1;
     int targetdirBlkPtr = -1;
+    int targetIndirBlkPtr = -1;
     int nextInodeNum = 0;
     for(int i=0;i<index;i++){
         for(int j=0;j<NUM_OF_DIRECT_BLOCK_PTR;j++){ //all dirptr
@@ -117,14 +119,14 @@ int MakeDirectory(char* name)
                     find = 1;
                     break;
                 }
-            //if last path(dir name) & duplicate
+                //if last path(dir name) & duplicate
                 else if(i == index-1 && strcmp(paths[i],pEntry[k].name)==0){
                     free(pEntry);
                     free(pInode);
                     free(buf);
                     return -1;
                 }
-            //if last path(dir name) & empty space
+                //if last path(dir name) & empty space
                 if(i==index-1 && pEntry[k].inodeNum == INVALID_ENTRY){
                     targetDirEntryNum = k;
                     check++;
@@ -132,9 +134,104 @@ int MakeDirectory(char* name)
                     break;
                 }
             }
-
             if(find) break;
         }
+        if(check < i+1 && targetdirBlkPtr > 2) {
+            targetdirBlkPtr = -1;
+            if(pInode->indirectBlockPtr==-1){
+                //allocate index block
+                int idxBlkNum = GetFreeBlockNum();
+                pInode->indirectBlockPtr = idxBlkNum;
+                PutInode(nextInodeNum,pInode);
+            
+                int* pIdx = (int*)malloc(sizeof(int)*128);
+                DevReadBlock(idxBlkNum,(char*)pIdx);
+                for(int j=0;j<128;j++){
+                    pIdx[j] = INVALID_ENTRY;
+                }
+                DevWriteBlock(idxBlkNum,(char*)pIdx);
+
+                //set bytemap
+                SetBlockBytemap(idxBlkNum);
+
+                //**---FileSysInfo handle---**
+                DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                _pFileSysInfo->numFreeBlocks--;
+                DevWriteBlock(FILESYS_INFO_BLOCK,(char*)_pFileSysInfo);
+                DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                free(pIdx);
+            }   
+            //serach in idxblcks
+ 
+            for(int j=0;j<128;j++){
+                int find = 0;
+
+                if(i == index-1 && GetIndirectBlockEntry(pInode->indirectBlockPtr, j) == INVALID_ENTRY){ //allocate new block
+                    //allocate new block
+                    DirEntry* n_pEntry = (DirEntry*)malloc(sizeof(DirEntry)*NUM_OF_DIRENT_PER_BLK);
+                    char* n_pBuf = (char*) n_pEntry;
+                    int nBlkNum = GetFreeBlockNum();
+
+                    for(int m=0;m<NUM_OF_DIRENT_PER_BLK;m++){
+                    memset(n_pEntry[m].name, 0, MAX_NAME_LEN);
+                        n_pEntry[m].inodeNum = INVALID_ENTRY;
+                    }
+                    //init block
+                    DevWriteBlock(nBlkNum, n_pBuf);
+                    
+                    //update Inode
+                    pInode->allocBlocks++;
+                    pInode->size += BLOCK_SIZE;
+                    PutInode(nextInodeNum, pInode);
+
+                    //updateindirect block
+                    PutIndirectBlockEntry(pInode->indirectBlockPtr, j, nBlkNum);
+                    
+
+                    //set bytemap
+                    SetBlockBytemap(nBlkNum);    
+                
+                    //update FileSystemInfo
+                    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                    _pFileSysInfo->numFreeBlocks--;
+                    _pFileSysInfo->numAllocBlocks++;
+                    DevWriteBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+
+                    free(n_pEntry);
+                }
+                
+                targetIndirBlkPtr = j;
+                DevReadBlock(GetIndirectBlockEntry(pInode->indirectBlockPtr,j), pBuf);
+                for(int k=0; k< NUM_OF_DIRENT_PER_BLK; k++){
+                    //if name match
+                    if(i != index-1 && strcmp(paths[i],pEntry[k].name)==0){
+                    //find next Inode num
+                        nextInodeNum = pEntry[k].inodeNum;
+                        GetInode(nextInodeNum,pInode);
+                        check++;
+                        find = 1;
+                        break;
+                    }
+                    //if last path(dir name) & duplicate
+                    else if(i == index-1 && strcmp(paths[i],pEntry[k].name)==0){
+                        free(pEntry);
+                        free(pInode);
+                        free(buf);
+                        return -1;
+                    }
+                    //if last path(dir name) & empty space
+                    if(i==index-1 && pEntry[k].inodeNum == INVALID_ENTRY){
+                        targetDirEntryNum = k;
+                        check++;
+                        find = 1;
+                        break;
+                    }
+                }
+                if(find) break;
+            }
+        }
+
     }
     if(check != index) {
         free(pEntry);
@@ -142,7 +239,7 @@ int MakeDirectory(char* name)
         free(buf);
         return -1;
     }
-  
+    
     //2. if Possible : Set DirEntry
 
      //Get Free No.
@@ -150,10 +247,19 @@ int MakeDirectory(char* name)
     int targetInodeNum = GetFreeInodeNum();
 
     //set prev direntry
-    DevReadBlock(pInode->dirBlockPtr[targetdirBlkPtr],pBuf);
-    strncpy(pEntry[targetDirEntryNum].name,paths[index-1],strlen(paths[index-1])+1);
-    pEntry[targetDirEntryNum].inodeNum = targetInodeNum;
-    DevWriteBlock(pInode->dirBlockPtr[targetdirBlkPtr],pBuf);
+    if(targetdirBlkPtr !=-1){
+        DevReadBlock(pInode->dirBlockPtr[targetdirBlkPtr],pBuf);
+        strncpy(pEntry[targetDirEntryNum].name,paths[index-1],strlen(paths[index-1])+1);
+        pEntry[targetDirEntryNum].inodeNum = targetInodeNum;
+        DevWriteBlock(pInode->dirBlockPtr[targetdirBlkPtr],pBuf);
+    }
+    else if(targetIndirBlkPtr != -1 && targetdirBlkPtr == -1){
+        DevReadBlock(GetIndirectBlockEntry(pInode->indirectBlockPtr,targetIndirBlkPtr),pBuf);
+        strncpy(pEntry[targetDirEntryNum].name,paths[index-1],strlen(paths[index-1])+1);
+        pEntry[targetDirEntryNum].inodeNum = targetInodeNum;
+        DevWriteBlock(GetIndirectBlockEntry(pInode->indirectBlockPtr,targetIndirBlkPtr),pBuf);
+    }
+    
 
     //set new direntry
     DevReadBlock(targetBlockNum,pBuf);
@@ -179,6 +285,7 @@ int MakeDirectory(char* name)
     for(int i=1;i<NUM_OF_DIRECT_BLOCK_PTR;i++){
         pInode->dirBlockPtr[i] = -1;
     }
+    pInode->indirectBlockPtr = -1;
     PutInode(targetInodeNum, pInode);
 
     //**---Set bytemap---**
@@ -229,6 +336,7 @@ int RemoveDirectory(char* name)
     int prevInodeNum = 0;
     int targetdirBlkPtr = -1;
     int targetIndex = -1;
+    int targetIndirBlkPtr = -1;
     for(int i=0;i<index;i++){
         for(int j=0;j<NUM_OF_DIRECT_BLOCK_PTR;j++){ //all dirptr
             int find = 0;
@@ -260,6 +368,30 @@ int RemoveDirectory(char* name)
                 }
             }
             if(find) break;
+        }
+
+        if(check < i+1 && targetdirBlkPtr > 2)
+        {
+            targetdirBlkPtr = -1;
+            for(int j=0;j<128;j++){
+                int find = 0;
+                targetIndirBlkPtr = j;
+                DevReadBlock(GetIndirectBlockEntry(pInode->indirectBlockPtr,j), pBuf);
+                for(int k=0; k< NUM_OF_DIRENT_PER_BLK; k++){
+                    //if name match
+                    if(strcmp(paths[i],pEntry[k].name)==0){
+                    //find next Inode num
+                        prevInodeNum = nextInodeNum;
+                        targetIndex = k;
+                        nextInodeNum = pEntry[k].inodeNum;
+                        GetInode(nextInodeNum,pInode);
+                        check++;
+                        find = 1;
+                        break;
+                    }
+                }
+                if(find) break;
+            }
         }
     }
 
@@ -305,11 +437,15 @@ int RemoveDirectory(char* name)
 
     //Delete cur dir in prev dir
     GetInode(prevInodeNum, pInode);
-    RemoveDirEntry(pInode->dirBlockPtr[targetdirBlkPtr], targetIndex);
+    if(targetdirBlkPtr != -1)
+        RemoveDirEntry(pInode->dirBlockPtr[targetdirBlkPtr], targetIndex);
+    else if(targetIndirBlkPtr != -1)
+        RemoveDirEntry(GetIndirectBlockEntry(pInode->indirectBlockPtr,targetIndirBlkPtr), targetIndex);
 
     //re construct prevdir entrys
 
-    for(int i=targetdirBlkPtr;i<NUM_OF_DIRECT_BLOCK_PTR;i++){
+    if(targetdirBlkPtr != -1) {
+        for(int i=targetdirBlkPtr;i<NUM_OF_DIRECT_BLOCK_PTR;i++){
         if(pInode->dirBlockPtr[i]==INVALID_ENTRY) break;
         int finish = 0;
         if(targetIndex == NUM_OF_DIRENT_PER_BLK -1){
@@ -346,7 +482,66 @@ int RemoveDirectory(char* name)
         if(finish) break;
         targetIndex = NUM_OF_DIRENT_PER_BLK-1;
     }
+    }
 
+    else if(targetIndirBlkPtr != -1){
+        for(int i=targetIndirBlkPtr;i<128;i++){
+        if(GetIndirectBlockEntry(pInode->indirectBlockPtr, i)==INVALID_ENTRY) break;
+        
+        int finish = 0;
+        if(targetIndex == NUM_OF_DIRENT_PER_BLK -1){
+            if(i!= 127 && GetIndirectBlockEntry(pInode->indirectBlockPtr, i+1) != INVALID_ENTRY){
+                GetDirEntry(GetIndirectBlockEntry(pInode->indirectBlockPtr, i+1),0,n_pEntry);
+                PutDirEntry(GetIndirectBlockEntry(pInode->indirectBlockPtr, i),targetIndex,n_pEntry);
+                RemoveDirEntry(GetIndirectBlockEntry(pInode->indirectBlockPtr, i+1),0);
+                targetIndex = 0;
+            }
+        }
+
+        for(int j=targetIndex+1;j<NUM_OF_DIRENT_PER_BLK;j++){
+            GetDirEntry(GetIndirectBlockEntry(pInode->indirectBlockPtr, i), j, n_pEntry);
+            if(n_pEntry->inodeNum == INVALID_ENTRY){ //finish
+                if(j == 1){ // reset prev Inode
+                    
+                    pInode->allocBlocks--;
+                    RemoveIndirectBlockEntry(pInode->indirectBlockPtr, i);
+                    pInode->size -= BLOCK_SIZE;
+                    PutInode(prevInodeNum,pInode);
+
+                    if(i == 0){ //reset idx blk
+                        DevReadBlock(pInode->indirectBlockPtr,pBuf);
+                        memset(pEntry,0,sizeof(DirEntry)*NUM_OF_DIRENT_PER_BLK);
+                        DevWriteBlock(pInode->indirectBlockPtr,pBuf);
+                        //set bytemap
+                        ResetBlockBytemap(pInode->indirectBlockPtr);
+
+                        pInode->indirectBlockPtr = -1;
+                        PutInode(prevInodeNum,pInode);
+
+                        //**---FileSysInfo handle---**
+                        DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                        _pFileSysInfo->numFreeBlocks++;
+                        DevWriteBlock(FILESYS_INFO_BLOCK,(char*)_pFileSysInfo);
+                        DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                    }
+
+                    //reset FileSysInfo
+                    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                    _pFileSysInfo->numFreeBlocks++;
+                    _pFileSysInfo->numAllocBlocks--;
+                    DevWriteBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                    DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                    finish = 1;
+                }
+                break;
+            }
+            PutDirEntry(GetIndirectBlockEntry(pInode->indirectBlockPtr, i),j-1,n_pEntry);
+            RemoveDirEntry(GetIndirectBlockEntry(pInode->indirectBlockPtr, i),j);
+        }
+        if(finish) break;
+        targetIndex = NUM_OF_DIRENT_PER_BLK-1;
+        }
+    }
     free(n_pEntry);
     free(pEntry);
     free(pInode);
@@ -421,6 +616,7 @@ void CreateFileSystem(void)
     for(int i=1;i<NUM_OF_DIRECT_BLOCK_PTR;i++){
         pInode->dirBlockPtr[i] = -1;
     }
+    pInode->indirectBlockPtr = -1;
     
     //Put target num Inode
     PutInode(targetInodeNum, pInode);
@@ -472,6 +668,7 @@ Directory* OpenDirectory(char* name)
     int prevInodeNum = 0;
     int targetdirBlkPtr = -1;
     int targetIndex = -1;
+    int targetIndirBlkPtr = -1;
 
     for(int i=0;i<index;i++){
         for(int j=0;j<NUM_OF_DIRECT_BLOCK_PTR;j++){ //all dirptr
@@ -505,6 +702,26 @@ Directory* OpenDirectory(char* name)
             }
             if(find) break;
         }
+        if(check < i+1 && targetdirBlkPtr > 2)
+        {
+            for(int j=0;j<128;j++){
+                int find = 0;
+                targetIndirBlkPtr = j;
+                DevReadBlock(GetIndirectBlockEntry(pInode->indirectBlockPtr,j), pBuf);
+                for(int k=0; k< NUM_OF_DIRENT_PER_BLK; k++){
+                    //if name match
+                    if(i != index-1 && strcmp(paths[i],pEntry[k].name)==0){
+                    //find next Inode num
+                        nextInodeNum = pEntry[k].inodeNum;
+                        GetInode(nextInodeNum,pInode);
+                        check++;
+                        find = 1;
+                        break;
+                    }
+                }
+                if(find) break;
+            }
+        }
     }
     if(check != index) {
         free(pEntry);
@@ -535,18 +752,25 @@ FileInfo* ReadDirectory(Directory* pDir)
     //search
     int curDirPtr = offset/ NUM_OF_DIRENT_PER_BLK;
     int curEntry = offset% NUM_OF_DIRENT_PER_BLK;
-
-    if(curDirPtr >=NUM_OF_DIRECT_BLOCK_PTR || curEntry>=NUM_OF_DIRENT_PER_BLK){
-        offset = 0;
-        return NULL;
+    int useIndir = 0;
+    if(curDirPtr >= NUM_OF_DIRECT_BLOCK_PTR){
+        useIndir = 1;
+        curDirPtr = (offset -32)/ NUM_OF_DIRENT_PER_BLK;
+        curEntry = (offset-32)% NUM_OF_DIRENT_PER_BLK;
+        if(curDirPtr >= 128){
+            offset = 0;
+            return NULL;
+        }
     }
 
     if(pInode->dirBlockPtr[curDirPtr] == -1){
         offset = 0;
         return NULL;
     }
-
-    DevReadBlock(pInode->dirBlockPtr[curDirPtr], (char*)pEntry);
+    if(useIndir == 0)
+        DevReadBlock(pInode->dirBlockPtr[curDirPtr], (char*)pEntry);
+    else if(useIndir == 1)
+        DevReadBlock(GetIndirectBlockEntry(pInode->indirectBlockPtr,curDirPtr), (char*)pEntry);
 
     if(pEntry[curEntry].inodeNum == INVALID_ENTRY){
         offset = 0;
@@ -563,6 +787,9 @@ FileInfo* ReadDirectory(Directory* pDir)
     
     //set next inodenum
     offset++;
+
+    free(pInode);
+    free(pEntry);
 
     return pFileInfo;
 }

@@ -253,7 +253,7 @@ ERROR:
         printf("usage: a.out [createfs| openfs] [1-5])\n");
         return -1;
     }
-    FileSysInit();
+
     if (strcmp(argv[1], "createfs") == 0)
         CreateFileSystem();
     else if (strcmp(argv[1], "openfs") == 0)

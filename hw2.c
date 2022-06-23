@@ -421,6 +421,18 @@ int OpenFile(const char* name, OpenFlag flag)
                 DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
             }
         }
+        if(pInode->indirectBlockPtr!=-1){
+            DevReadBlock(pInode->indirectBlockPtr, pBuf);
+            memset(pBuf,0,BLOCK_SIZE);
+            DevWriteBlock(pInode->indirectBlockPtr,pBuf);
+            pInode->indirectBlockPtr = -1;
+
+             //Re set FileSysInfo
+            DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+            _pFileSysInfo->numFreeBlocks++;
+            DevWriteBlock(FILESYS_INFO_BLOCK,(char*)_pFileSysInfo);
+            DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+        }
 
         //Reset Cur Bytemap
         ResetInodeBytemap(nextInodeNum);
@@ -821,6 +833,19 @@ int RemoveFile(char* name)
         }
     }
 
+    if(pInode->indirectBlockPtr!=-1){
+            DevReadBlock(pInode->indirectBlockPtr, pBuf);
+            memset(pBuf,0,BLOCK_SIZE);
+            DevWriteBlock(pInode->indirectBlockPtr,pBuf);
+            pInode->indirectBlockPtr = -1;
+
+             //Re set FileSysInfo
+            DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+            _pFileSysInfo->numFreeBlocks++;
+            DevWriteBlock(FILESYS_INFO_BLOCK,(char*)_pFileSysInfo);
+            DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+        }
+
     //Reset Cur Bytemap
     ResetInodeBytemap(nextInodeNum);
 
@@ -872,10 +897,10 @@ int RemoveFile(char* name)
         if(pInode->dirBlockPtr[i]==INVALID_ENTRY) break;
         int finish = 0;
         if(targetIndex == NUM_OF_DIRENT_PER_BLK -1){
-            if(i!= NUM_OF_DIRECT_BLOCK_PTR-1 && pInode->dirBlockPtr[i+1] != INVALID_ENTRY){
-                GetDirEntry(pInode->dirBlockPtr[i+1],0,n_pEntry);
-                PutDirEntry(pInode->dirBlockPtr[i],targetIndex,n_pEntry);
-                RemoveDirEntry(pInode->dirBlockPtr[i+1],0);
+            if(i!= NUM_OF_DIRECT_BLOCK_PTR-1 && i != 0){
+                GetDirEntry(pInode->dirBlockPtr[i],0,n_pEntry);
+                PutDirEntry(pInode->dirBlockPtr[i-1],targetIndex,n_pEntry);
+                RemoveDirEntry(pInode->dirBlockPtr[i],0);
                 targetIndex = 0;
             }
         }
@@ -887,7 +912,7 @@ int RemoveFile(char* name)
                     pInode->allocBlocks--;
                     pInode->dirBlockPtr[i] = -1;
                     pInode->size -= BLOCK_SIZE;
-                    PutInode(prevInodeNum,pInode);
+                    PutInode( prevInodeNum,pInode);
 
                     //reset FileSysInfo
                     DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);

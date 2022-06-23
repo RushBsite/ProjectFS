@@ -50,9 +50,36 @@ int OpenFile(const char* name, OpenFlag flag)
                 for(int j=0;j<NUM_OF_DIRECT_BLOCK_PTR;j++){ //all dirptr
 
                     if(pInode->dirBlockPtr[j] == INVALID_ENTRY){
-                        free(pInode);
-                        free(pEntry);
-                        return -1;
+                        //allocate new block
+                        DirEntry* n_pEntry = (DirEntry*)malloc(sizeof(DirEntry)*NUM_OF_DIRENT_PER_BLK);
+                        char* n_pBuf = (char*) n_pEntry;
+                        int newBlkNum = GetFreeBlockNum();
+
+                        for(int m=0;m<NUM_OF_DIRENT_PER_BLK;m++){
+                        memset(n_pEntry[m].name, 0, MAX_NAME_LEN);
+                            n_pEntry[m].inodeNum = INVALID_ENTRY;
+                        }
+                        //init block
+                        DevWriteBlock(newBlkNum, n_pBuf);
+                        
+                        //update Inode
+                        pInode->allocBlocks++;
+                        pInode->size += BLOCK_SIZE;
+                        pInode->dirBlockPtr[j] = newBlkNum;
+
+                        PutInode(nextInodeNum, pInode);
+
+                        //set bytemap
+                        SetBlockBytemap(newBlkNum);    
+                    
+                        //update FileSystemInfo
+                        DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                        _pFileSysInfo->numFreeBlocks--;
+                        _pFileSysInfo->numAllocBlocks++;
+                        DevWriteBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                        DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+
+                        free(n_pEntry);
                     }
                     int find = 0;
                     DevReadBlock(pInode->dirBlockPtr[j], pBuf); 
@@ -344,10 +371,10 @@ int WriteFile(int fileDesc, char* pBuffer, int length)
                     //update Inode
                     pInode->allocBlocks++;
                     pInode->size += BLOCK_SIZE;
-                    PutInode(nextInodeNum, pInode);
+                    PutInode(fInodeNum, pInode);
 
                     //updateindirect block
-                    PutIndirectBlockEntry(pInode->indirectBlockPtr, j, nBlkNum);
+                    PutIndirectBlockEntry(pInode->indirectBlockPtr, i, nBlkNum);
                     
                     //set bytemap
                     SetBlockBytemap(nBlkNum);    
@@ -406,6 +433,7 @@ int WriteFile(int fileDesc, char* pBuffer, int length)
 
 int ReadFile(int fileDesc, char* pBuffer, int length)
 {
+
     return 0;
 }
 
@@ -417,8 +445,8 @@ int CloseFile(int fileDesc)
     else if(_pFileTable->pFile[ftIdx].bUsed == 0)return -1;
     
     _pFileTable->pFile[ftIdx].bUsed = 0;
-    _pFileTable->pFile[ftIdx].fileOffset = NULL;
-    _pFileTable->pFile[ftIdx].inodeNum = NULL;
+    _pFileTable->pFile[ftIdx].fileOffset = -1;
+    _pFileTable->pFile[ftIdx].inodeNum = -1;
 
     return 0;
 }

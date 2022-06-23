@@ -4,12 +4,12 @@ LDFLAGS = -no-pie
 OBJECTS = validate.o testcase.o hw1.o hw2.o disk.o
 
 run: all
-	./program createfs 1
+	./hw2 createfs 1
 
-all : program
+all : hw2
 
-program : $(OBJECTS)
-	$(CC) $(LDFLAGS) -o program $(OBJECTS)
+hw2 : $(OBJECTS)
+	$(CC) $(LDFLAGS) -o hw2 $(OBJECTS)
 
 testcase.o : testcase.c
 	$(CC) $(CFLAGS) testcase.c

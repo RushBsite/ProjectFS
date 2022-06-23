@@ -399,7 +399,7 @@ int WriteFile(int fileDesc, char* pBuffer, int length)
 
     free(pInode);
     free(pBuf);
-    
+
     return pBufOffset;
 }
 
@@ -411,6 +411,15 @@ int ReadFile(int fileDesc, char* pBuffer, int length)
 
 int CloseFile(int fileDesc)
 {
+    if(_pFileDescTable->pEntry[fileDesc].bUsed == 0) return -1;
+    int ftIdx = _pFileDescTable->pEntry[fileDesc].fileTableIndex;
+    if(_pFileTable->numUsedFile == 0) return -1;
+    else if(_pFileTable->pFile[ftIdx].bUsed == 0)return -1;
+    
+    _pFileTable->pFile[ftIdx].bUsed = 0;
+    _pFileTable->pFile[ftIdx].fileOffset = NULL;
+    _pFileTable->pFile[ftIdx].inodeNum = NULL;
+
     return 0;
 }
 

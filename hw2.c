@@ -48,9 +48,9 @@ int OpenFile(const char* name, OpenFlag flag)
             for(int i=0;i<index;i++){
                 //search in direct block
                 for(int j=0;j<NUM_OF_DIRECT_BLOCK_PTR;j++){ //all dirptr
-
+                    //allocate new block
                     if(pInode->dirBlockPtr[j] == INVALID_ENTRY){
-                        //allocate new block
+                        
                         DirEntry* n_pEntry = (DirEntry*)malloc(sizeof(DirEntry)*NUM_OF_DIRENT_PER_BLK);
                         char* n_pBuf = (char*) n_pEntry;
                         int newBlkNum = GetFreeBlockNum();
@@ -115,14 +115,67 @@ int OpenFile(const char* name, OpenFlag flag)
                 //search in indirect block
                 if(check < i+1 && targetdirBlkPtr > 2) {
                     targetdirBlkPtr = -1;
+
+                    if(pInode->indirectBlockPtr==-1){
+                        //allocate index block
+                        int idxBlkNum = GetFreeBlockNum();
+                        pInode->indirectBlockPtr = idxBlkNum;
+                        PutInode(nextInodeNum,pInode);
+                    
+                        int* pIdx = (int*)malloc(sizeof(int)*128);
+                        DevReadBlock(idxBlkNum,(char*)pIdx);
+                        for(int j=0;j<128;j++){
+                            pIdx[j] = INVALID_ENTRY;
+                        }
+                        DevWriteBlock(idxBlkNum,(char*)pIdx);
+
+                        //set bytemap
+                        SetBlockBytemap(idxBlkNum);
+
+                        //**---FileSysInfo handle---**
+                        DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                        _pFileSysInfo->numFreeBlocks--;
+                        DevWriteBlock(FILESYS_INFO_BLOCK,(char*)_pFileSysInfo);
+                        DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                        free(pIdx);
+                    }
                      
                     //serach in idxblcks
                     for(int j=0;j<128;j++){
                         int find = 0;  
                         if(GetIndirectBlockEntry(pInode->indirectBlockPtr, j) == INVALID_ENTRY){
-                            free(pInode);
-                            free(pEntry);
-                            return -1;
+                            //allocate new block
+                            DirEntry* n_pEntry = (DirEntry*)malloc(sizeof(DirEntry)*NUM_OF_DIRENT_PER_BLK);
+                            char* n_pBuf = (char*) n_pEntry;
+                            int nBlkNum = GetFreeBlockNum();
+
+                            for(int m=0;m<NUM_OF_DIRENT_PER_BLK;m++){
+                            memset(n_pEntry[m].name, 0, MAX_NAME_LEN);
+                                n_pEntry[m].inodeNum = INVALID_ENTRY;
+                            }
+                            //init block
+                            DevWriteBlock(nBlkNum, n_pBuf);
+                            
+                            //update Inode
+                            pInode->allocBlocks++;
+                            pInode->size += BLOCK_SIZE;
+                            PutInode(nextInodeNum, pInode);
+
+                            //updateindirect block
+                            PutIndirectBlockEntry(pInode->indirectBlockPtr, j, nBlkNum);
+                            
+
+                            //set bytemap
+                            SetBlockBytemap(nBlkNum);    
+                        
+                            //update FileSystemInfo
+                            DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                            _pFileSysInfo->numFreeBlocks--;
+                            _pFileSysInfo->numAllocBlocks++;
+                            DevWriteBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+                            DevReadBlock(FILESYS_INFO_BLOCK, (char*)_pFileSysInfo);
+
+                            free(n_pEntry);
                         }
                         targetIndirBlkPtr = j;
                         DevReadBlock(GetIndirectBlockEntry(pInode->indirectBlockPtr,j), pBuf);

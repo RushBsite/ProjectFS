@@ -793,7 +793,7 @@ int RemoveFile(char* name)
     pBuf = (char*) malloc(BLOCK_SIZE);
     
     for(int i=0;i<pInode->allocBlocks;i++){
-        if(i<NUM_OF_DIRENT_PER_BLK){
+        if(i<NUM_OF_DIRECT_BLOCK_PTR){
             DevReadBlock(pInode->dirBlockPtr[i], pBuf);
             memset(pBuf, 0, BLOCK_SIZE);
             DevWriteBlock(pInode->dirBlockPtr[i], pBuf);
@@ -840,23 +840,23 @@ int RemoveFile(char* name)
     int descInx = -1;
 
     for(int i=0; i<MAX_FILE_NUM; i++){
-        if(_pFileTable->pFile[i].inodeNum == nextInodeNum){
+        if(_pFileTable->pFile[i].inodeNum == nextInodeNum && _pFileTable->pFile[i].bUsed == 1){
             _pFileTable->pFile[i].bUsed = 0;
             _pFileTable->pFile[i].fileOffset = 0;
             _pFileTable->pFile[i].inodeNum = -1;
             findex = i;
+            _pFileTable->numUsedFile--;
             break;
         }
     }
-    _pFileTable->numUsedFile--;
-    if(findex == -1) return -1;
+
     for(int i=0;i<DESC_ENTRY_NUM;i++){
         if(_pFileDescTable->pEntry[i].bUsed == 1 && _pFileDescTable->pEntry[i].fileTableIndex == findex){
             _pFileDescTable->pEntry[i].bUsed = 0;
+            _pFileDescTable->numUsedDescEntry--;
             break;
         }
     }
-    _pFileDescTable->numUsedDescEntry--;
 
     //Delete cur file in prev dir
     GetInode(prevInodeNum, pInode);

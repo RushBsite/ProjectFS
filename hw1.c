@@ -268,6 +268,7 @@ void RemoveDirEntry(int blkno, int index)
     DevReadBlock(blkno, pBuf);
 
     //set Invaild val
+    memset(ptr[index].name,0,MAX_NAME_LEN);
     ptr[index].inodeNum = INVALID_ENTRY;
 
     //write

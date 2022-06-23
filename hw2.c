@@ -223,25 +223,26 @@ int OpenFile(const char* name, OpenFlag flag)
         {
             int findex = -1;
             int descInx = -1;
+
             for(int i=0; i<MAX_FILE_NUM; i++){
                 if(_pFileTable->pFile[i].bUsed == 0){
                     _pFileTable->pFile[i].bUsed = 1;
                     _pFileTable->pFile[i].fileOffset = 0;
                     _pFileTable->pFile[i].inodeNum = pEntry[targetDirEntryNum].inodeNum;
                     findex = i;
+                    break;
                 }
             }
             _pFileTable->numUsedFile++;
             if(findex == -1) return -1;
             for(int i=0;i<DESC_ENTRY_NUM;i++){
-                if(_pFileDescTable->pEntry[i].bUsed == 0){
+                if(_pFileDescTable->pEntry[i].bUsed == 0 && _pFileDescTable->pEntry[i].fileTableIndex == findex){
                     _pFileDescTable->pEntry[i].bUsed = 1;
-                    _pFileDescTable->pEntry[i].fileTableIndex = findex;
                     descInx = i;
+                    break;
                 }
             }
             _pFileDescTable->numUsedDescEntry++;
-           
             return descInx;
         }
         //3. if not , create
@@ -290,8 +291,9 @@ int OpenFile(const char* name, OpenFlag flag)
                 if(_pFileTable->pFile[i].bUsed == 0){
                     _pFileTable->pFile[i].bUsed = 1;
                     _pFileTable->pFile[i].fileOffset = 0;
-                    _pFileTable->pFile[i].inodeNum = pEntry[targetDirEntryNum].inodeNum;
+                    _pFileTable->pFile[i].inodeNum = targetInodeNum;
                     findex = i;
+                    break;
                 }
             }
             if(findex == -1) return -1;
@@ -301,6 +303,7 @@ int OpenFile(const char* name, OpenFlag flag)
                     _pFileDescTable->pEntry[i].bUsed = 1;
                     _pFileDescTable->pEntry[i].fileTableIndex = findex;
                     descInx = i;
+                    break;
                 }
             }
             if(descInx == -1) return -1;
@@ -486,20 +489,63 @@ int WriteFile(int fileDesc, char* pBuffer, int length)
 
 int ReadFile(int fileDesc, char* pBuffer, int length)
 {
+    Inode* pInode = (Inode*)malloc(sizeof(Inode));
+    char* pBuf = (char*) malloc (BLOCK_SIZE);
 
-    return 0;
+    int ftIdx = _pFileDescTable->pEntry[fileDesc].fileTableIndex;
+    int fInodeNum = _pFileTable->pFile[ftIdx].inodeNum;
+    int offset = _pFileTable->pFile[ftIdx].fileOffset;
+
+    int pBufOffset = 0;
+    int EntryOffset = offset/ BLOCK_SIZE;
+    int indexOffset = offset% BLOCK_SIZE;
+
+    GetInode(fInodeNum, pInode);
+    int s_blkNum;
+    //copy
+    for(int i= EntryOffset; i<pInode->allocBlocks;i++){
+        if(i<NUM_OF_DIRECT_BLOCK_PTR)
+            s_blkNum = pInode->dirBlockPtr[i];
+        else
+            s_blkNum = GetIndirectBlockEntry(pInode->indirectBlockPtr, i-4);
+
+        DevReadBlock(s_blkNum, pBuf);
+
+        int copysize = 0;
+        if(length >= BLOCK_SIZE - indexOffset)
+            copysize = BLOCK_SIZE - indexOffset;
+        else
+            copysize = length;
+        
+        memcpy(pBuffer+pBufOffset, pBuf + indexOffset, copysize);
+        pBufOffset += copysize;
+        indexOffset = 0;
+        length -= copysize;
+    }
+
+    //set size
+    pInode->size += pBufOffset;
+    PutInode(fInodeNum,pInode);
+
+    //set File table
+    _pFileTable->pFile[ftIdx].fileOffset += pBufOffset;
+
+    free(pInode);
+    free(pBuf);
+
+    return pBufOffset;
 }
 
 int CloseFile(int fileDesc)
 {
     if(_pFileDescTable->pEntry[fileDesc].bUsed == 0) return -1;
     int ftIdx = _pFileDescTable->pEntry[fileDesc].fileTableIndex;
+    _pFileDescTable->pEntry[fileDesc].bUsed == 0;
+    _pFileDescTable->numUsedDescEntry--;
     if(_pFileTable->numUsedFile == 0) return -1;
     else if(_pFileTable->pFile[ftIdx].bUsed == 0)return -1;
-    
+    _pFileTable->numUsedFile--;
     _pFileTable->pFile[ftIdx].bUsed = 0;
-    _pFileTable->pFile[ftIdx].fileOffset = -1;
-    _pFileTable->pFile[ftIdx].inodeNum = -1;
 
     return 0;
 }
@@ -516,7 +562,7 @@ int MakeDirectory(char* name)
     //extract path & dir name
     char* buf = (char*)malloc(MAX_NAME_LEN);
     char* paths[500] = {NULL, };
-
+    strcpy(buf,name);
     buf = strtok(name,"/");
     while(buf!=NULL){
         paths[index++] = buf;
@@ -786,8 +832,8 @@ int RemoveDirectory(char* name)
     //extract path & dir name
     char* buf = (char*)malloc(MAX_NAME_LEN);
     char* paths[500] = {NULL, };
-
-    buf = strtok(name,"/");
+    strcpy(buf,name);
+    buf = strtok(buf,"/");
     while(buf!=NULL){
         paths[index++] = buf;
         buf = strtok(NULL, "/");
@@ -1133,8 +1179,8 @@ Directory* OpenDirectory(char* name)
     //extract path & dir name
     char* buf = (char*)malloc(MAX_NAME_LEN);
     char* paths[500] = {NULL, };
-
-    buf = strtok(name,"/");
+    strcpy(buf, name);
+    buf = strtok(buf,"/");
     while(buf!=NULL){
         paths[index++] = buf;
         buf = strtok(NULL, "/");
@@ -1221,6 +1267,9 @@ Directory* OpenDirectory(char* name)
     memset(dir,0,sizeof(Directory));
     dir->inodeNum = nextInodeNum;
 
+    free(pEntry);
+    free(pInode);
+    free(buf);
     return dir;
 }
 

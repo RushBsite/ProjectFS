@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/program",
-            "args": ["openfs", 2],
+            "args": ["openfs", 3],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
